@@ -10,12 +10,7 @@ import (
     b "github.com/distatus/battery" 
 )
 
-
 func main()  {
-    
-
-    
-    
     // var status string
     var tstring string
     var wstring string
@@ -27,7 +22,7 @@ func main()  {
 
     go getDate(currentTime)
     go getWeather(weather)
-    // go getBattery(battery)
+    go getBattery(battery)
 
     for {
 	select {
@@ -38,25 +33,21 @@ func main()  {
 	case msg3 := <- battery:
 	    bstring = msg3
 	}
-	cmd := exec.Command("xsetroot", "-name", bstring + wstring + tstring )
+	cmd := exec.Command("xsetroot", "-name", bstring + " " + wstring + " " + tstring )
 	err := cmd.Run()
 
 	if err != nil {
 	    fmt.Println(err)
 	    os.Exit(-1)
 	}
-
     }
-    
-
-	
 }
 
 func getWeather(weather chan string) {
     var i interface{}
     var output string
     for {
-	wapi, err := http.Get("https://api.open-meteo.com/v1/forecast?latitude=39.23&longitude=9.12&hourly=temperature_2m,relativehumidity_2m,precipitation,windspeed_10m&current_weather=true&timezone=Europe%2FBerlin")
+	wapi, err := http.Get("https://api.open-meteo.com/v1/forecast?latitude=" + latitude + "&longitude=" + longitude + "&hourly=temperature_2m,relativehumidity_2m,precipitation,windspeed_10m&current_weather=true&timezone=Europe%2FBerlin")
 
 	if err != nil {
 	    weather <- "Loading weather"
@@ -72,11 +63,10 @@ func getWeather(weather chan string) {
 	icon, _ := strconv.Atoi(fmt.Sprintf("%v", current_weather["weathercode"]))
 	windspeed := fmt.Sprintf("%v", current_weather["windspeed"])
 
-	output = fmt.Sprintf("%s°C🍃%skm/h%s" , temp, windspeed, selIcon(wmo_table(icon)))
+	output = fmt.Sprintf("%s°C🍃%skm/h %s" , temp, windspeed, selIcon(wmo_table(icon)))
 	weather <- output
 
 	time.Sleep(time.Hour)
-
     }
 }
 
@@ -84,7 +74,7 @@ func getBattery(battery chan string) {
     var output string
     var icon string
     for {
-    bat, err := b.Get(0)
+    bat, err := b.Get(battery_number)
     if err != nil {
 	battery <- "Could not get battery info!"
 	time.Sleep(time.Minute * 1)
@@ -104,12 +94,10 @@ func getBattery(battery chan string) {
 
 func getDate(currentTime chan string) {
     for {
-	currentTime <- time.Now().Format("15:04:05")
+	currentTime <- time.Now().Local().Format("15:04:05")
 	time.Sleep(time.Second)
     }
 }
-
-
 
 func selIcon(desc string) string {
     // h := time.Now().Hour()
@@ -137,7 +125,6 @@ func selIcon(desc string) string {
 	return "m"
     }
 }
-
 
 func wmo_table(code int) string{
     switch code{
